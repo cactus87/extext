@@ -1,1 +1,208 @@
-[{"text": "using System.Text;\nusing TextExpander.Core.Models;\nusing TextExpander.Core.Repositories;\n\nnamespace TextExpander.Core.Engine;\n\n/// <summary>\n/// \ud14d\uc2a4\ud2b8 \ud655\uc7a5 \uc5d4\uc9c4 \uad6c\ud604\n/// \uc785\ub825 \ubc84\ud37c\ub97c \uad00\ub9ac\ud558\uace0 \uad6c\ubd84\uc790 \uac10\uc9c0 \uc2dc \uc2a4\ub2c8\ud3ab \ub9e4\uce6d \uc218\ud589\n/// </summary>\npublic class ExpanderEngine : IExpanderEngine\n{\n    private const int MAX_BUFFER_LENGTH = 200;\n    \n    private readonly StringBuilder _buffer = new();\n    private ISnippetRepository? _repository;\n    private AppSettings _settings = new();\n    private bool _isSending = false;\n    private bool _isEnabled = true;\n    private DateTime _lastProcessTime = DateTime.MinValue;\n\n    /// <inheritdoc/>\n    public event Action<ExpanderResult>? OnExpansionNeeded;\n\n    /// <inheritdoc/>\n    public void OnCharInput(char ch)\n    {\n        // 1. \uae30\ubcf8 \uac80\uc0ac\n        if (!_isEnabled || _isSending)\n            return;\n\n        // 2. \ud3f4\ub9c1 \uac04\uaca9 \uccb4\ud06c (\uc800\uc0ac\uc591 PC\ub97c \uc704\ud55c \ucc98\ub9ac \uac04\uaca9 \uc870\uc808)\n        if (_settings.KeyProcessingIntervalMs > 0)\n        {\n            var now = DateTime.UtcNow;\n            var elapsed = (now - _lastProcessTime).TotalMilliseconds;\n            if (elapsed < _settings.KeyProcessingIntervalMs)\n            {\n                return; // \ub108\ubb34 \ube60\ub978 \uc785\ub825\uc740 \uac74\ub108\ub700\n            }\n            _lastProcessTime = now;\n        }\n\n        // 3. Backspace \ucc98\ub9ac: \ubc84\ud37c\uc5d0\uc11c \ub9c8\uc9c0\ub9c9 \ubb38\uc790 1\uac1c \uc81c\uac70 (\uc0ac\uc6a9\uc790 \uc2e4\uc218 \uc218\uc815 \ud5c8\uc6a9)\n        if (ch == '\\b')\n        {\n            if (_buffer.Length > 0)\n            {\n                _buffer.Remove(_buffer.Length - 1, 1);\n            }\n            return;\n        }\n\n        // 4. Enter, Space \ucc98\ub9ac: \ubc84\ud37c \uc804\uccb4 \ub9ac\uc14b\n        if (ch == '\\n' || ch == ' ')\n        {\n            _buffer.Clear();\n            return;\n        }\n\n        // 5. \uad6c\ubd84\uc790 \uac80\uc0ac\n        if (IsDelimiter(ch))\n        {\n            HandleDelimiter(ch);\n        }\n        else\n        {\n            // 6. \uc77c\ubc18 \ubb38\uc790 \u2192 \ubc84\ud37c\uc5d0 \ucd94\uac00\n            _buffer.Append(ch);\n        }\n\n        // 7. \ubc84\ud37c \ud06c\uae30 \uad00\ub9ac\n        TrimBufferIfNeeded();\n    }\n\n    /// <inheritdoc/>\n    public void SetRepository(ISnippetRepository repository)\n    {\n        _repository = repository ?? throw new ArgumentNullException(nameof(repository));\n    }\n\n    /// <inheritdoc/>\n    public void SetSettings(AppSettings settings)\n    {\n        _settings = settings ?? throw new ArgumentNullException(nameof(settings));\n    }\n\n    /// <inheritdoc/>\n    public void Enable()\n    {\n        _isEnabled = true;\n    }\n\n    /// <inheritdoc/>\n    public void Disable()\n    {\n        _isEnabled = false;\n    }\n\n    /// <inheritdoc/>\n    public void SetSendingFlag(bool sending)\n    {\n        _isSending = sending;\n    }\n\n    /// <inheritdoc/>\n    public void ResetBuffer()\n    {\n        _buffer.Clear();\n    }\n\n    /// <summary>\n    /// \uad6c\ubd84\uc790 \uc785\ub825 \ucc98\ub9ac: \ub9c8\uc9c0\ub9c9 \ub2e8\uc5b4 \ucd94\ucd9c \ubc0f \uc2a4\ub2c8\ud3ab \ub9e4\uce6d\n    /// </summary>\n    private void HandleDelimiter(char delimiter)\n    {\n        // 1. \ubc84\ud37c\uc5d0\uc11c \ub9c8\uc9c0\ub9c9 \ub2e8\uc5b4 \ucd94\ucd9c\n        string lastWord = ExtractLastWord();\n\n        // 2. \ube48 \ub2e8\uc5b4\ub294 \ubb34\uc2dc\ud558\uace0 \ubc84\ud37c \ud074\ub9ac\uc5b4\n        if (string.IsNullOrWhiteSpace(lastWord))\n        {\n            _buffer.Clear();\n            return;\n        }\n\n        // 3. \uc800\uc7a5\uc18c\uac00 \uc5c6\uc73c\uba74 \ub9e4\uce6d \ubd88\uac00, \ubc84\ud37c \ud074\ub9ac\uc5b4\n        if (_repository == null)\n        {\n            _buffer.Clear();\n            return;\n        }\n\n        // 4. \ud65c\uc131 \uc2a4\ub2c8\ud3ab \uac80\uc0c9\n        var matchedSnippet = _repository.GetActiveSnippetByKeyword(lastWord);\n\n        // 5. \ub9e4\uce6d \uc131\uacf5 \uc2dc \uce58\ud658 \uc774\ubca4\ud2b8 \ubc1c\uc0dd\n        if (matchedSnippet != null)\n        {\n            var result = new ExpanderResult\n            {\n                Keyword = lastWord,\n                Replacement = matchedSnippet.Replacement,\n                Delimiter = delimiter,\n                KeywordLength = lastWord.Length\n            };\n\n            OnExpansionNeeded?.Invoke(result);\n        }\n\n        // 6. \ub9e4\uce6d \uc131\uacf5/\uc2e4\ud328 \uad00\uacc4\uc5c6\uc774 \ubc84\ud37c \ud074\ub9ac\uc5b4 (\uc77c\uad00\uc131 \uc720\uc9c0)\n        _buffer.Clear();\n    }\n\n    /// <summary>\n    /// \ubc84\ud37c\uc5d0\uc11c \ub9c8\uc9c0\ub9c9 \ub2e8\uc5b4 \ucd94\ucd9c\n    /// \uad6c\ubd84\uc790\ub97c \ub9cc\ub098\uae30 \uc804\uae4c\uc9c0\uc758 \ubb38\uc790\uc5f4 \ubc18\ud658\n    /// </summary>\n    private string ExtractLastWord()\n    {\n        string bufferStr = _buffer.ToString();\n        \n        // \ub05d\uc5d0\uc11c\ubd80\ud130 \uc5ed\uc21c\uc73c\ub85c \uad6c\ubd84\uc790/\uacf5\ubc31 \ucc3e\uae30\n        for (int i = bufferStr.Length - 1; i >= 0; i--)\n        {\n            if (IsDelimiter(bufferStr[i]) || char.IsWhiteSpace(bufferStr[i]))\n            {\n                // \uad6c\ubd84\uc790 \uc774\ud6c4\uc758 \ubb38\uc790\uc5f4 \ubc18\ud658\n                return bufferStr.Substring(i + 1);\n            }\n        }\n\n        // \uad6c\ubd84\uc790\uac00 \uc5c6\uc73c\uba74 \uc804\uccb4 \ubc84\ud37c\uac00 \ub9c8\uc9c0\ub9c9 \ub2e8\uc5b4\n        return bufferStr;\n    }\n\n    /// <summary>\n    /// \ubb38\uc790\uac00 \uad6c\ubd84\uc790\uc778\uc9c0 \ud310\ubcc4\n    /// \uc124\uc815\uc5d0 \ub530\ub77c \ub3d9\uc801\uc73c\ub85c \uad6c\ubd84\uc790 \uacb0\uc815\n    /// </summary>\n    private bool IsDelimiter(char ch)\n    {\n        return ch switch\n        {\n            '\\t' => _settings.UseTabAsDelimiter,\n            '.' => _settings.UsePeriodAsDelimiter,\n            ',' => _settings.UseCommaAsDelimiter,\n            ';' => _settings.UseSemicolonAsDelimiter,\n            '`' => _settings.UseBacktickAsDelimiter,\n            '\\'' => _settings.UseSingleQuoteAsDelimiter,\n            '/' => _settings.UseSlashAsDelimiter,\n            _ => false\n        };\n    }\n\n    /// <summary>\n    /// \ubc84\ud37c\uac00 \ucd5c\ub300 \ud06c\uae30\ub97c \ucd08\uacfc\ud558\uba74 \uc55e\ubd80\ubd84 \uc81c\uac70\n    /// </summary>\n    private void TrimBufferIfNeeded()\n    {\n        if (_buffer.Length > MAX_BUFFER_LENGTH)\n        {\n            int excessLength = _buffer.Length - MAX_BUFFER_LENGTH;\n            _buffer.Remove(0, excessLength);\n        }\n    }\n}\n", "type": "text"}]
+using System.Text;
+using TextExpander.Core.Models;
+using TextExpander.Core.Repositories;
+
+namespace TextExpander.Core.Engine;
+
+/// <summary>
+/// 텍스트 확장 엔진 구현
+/// 입력 버퍼를 관리하고 구분자 감지 시 스니펫 매칭 수행
+/// </summary>
+public class ExpanderEngine : IExpanderEngine
+{
+    private const int MAX_BUFFER_LENGTH = 200;
+    
+    private readonly StringBuilder _buffer = new();
+    private ISnippetRepository? _repository;
+    private AppSettings _settings = new();
+    private bool _isSending = false;
+    private bool _isEnabled = true;
+    private DateTime _lastProcessTime = DateTime.MinValue;
+
+    /// <inheritdoc/>
+    public event Action<ExpanderResult>? OnExpansionNeeded;
+
+    /// <inheritdoc/>
+    public void OnCharInput(char ch)
+    {
+        // 1. 기본 검사
+        if (!_isEnabled || _isSending)
+            return;
+
+        // 2. 폴링 간격 체크 (저사양 PC를 위한 처리 간격 조절)
+        if (_settings.KeyProcessingIntervalMs > 0)
+        {
+            var now = DateTime.UtcNow;
+            var elapsed = (now - _lastProcessTime).TotalMilliseconds;
+            if (elapsed < _settings.KeyProcessingIntervalMs)
+            {
+                return; // 너무 빠른 입력은 건너뜀
+            }
+            _lastProcessTime = now;
+        }
+
+        // 3. Backspace 처리: 버퍼에서 마지막 문자 1개 제거 (사용자 실수 수정 허용)
+        if (ch == '\b')
+        {
+            if (_buffer.Length > 0)
+            {
+                _buffer.Remove(_buffer.Length - 1, 1);
+            }
+            return;
+        }
+
+        // 4. Enter, Space 처리: 버퍼 전체 리셋
+        if (ch == '\n' || ch == ' ')
+        {
+            _buffer.Clear();
+            return;
+        }
+
+        // 5. 구분자 검사
+        if (IsDelimiter(ch))
+        {
+            HandleDelimiter(ch);
+        }
+        else
+        {
+            // 6. 일반 문자 → 버퍼에 추가
+            _buffer.Append(ch);
+        }
+
+        // 7. 버퍼 크기 관리
+        TrimBufferIfNeeded();
+    }
+
+    /// <inheritdoc/>
+    public void SetRepository(ISnippetRepository repository)
+    {
+        _repository = repository ?? throw new ArgumentNullException(nameof(repository));
+    }
+
+    /// <inheritdoc/>
+    public void SetSettings(AppSettings settings)
+    {
+        _settings = settings ?? throw new ArgumentNullException(nameof(settings));
+    }
+
+    /// <inheritdoc/>
+    public void Enable()
+    {
+        _isEnabled = true;
+    }
+
+    /// <inheritdoc/>
+    public void Disable()
+    {
+        _isEnabled = false;
+    }
+
+    /// <inheritdoc/>
+    public void SetSendingFlag(bool sending)
+    {
+        _isSending = sending;
+    }
+
+    /// <inheritdoc/>
+    public void ResetBuffer()
+    {
+        _buffer.Clear();
+    }
+
+    /// <summary>
+    /// 구분자 입력 처리: 마지막 단어 추출 및 스니펫 매칭
+    /// </summary>
+    private void HandleDelimiter(char delimiter)
+    {
+        // 1. 버퍼에서 마지막 단어 추출
+        string lastWord = ExtractLastWord();
+
+        // 2. 빈 단어는 무시하고 버퍼 클리어
+        if (string.IsNullOrWhiteSpace(lastWord))
+        {
+            _buffer.Clear();
+            return;
+        }
+
+        // 3. 저장소가 없으면 매칭 불가, 버퍼 클리어
+        if (_repository == null)
+        {
+            _buffer.Clear();
+            return;
+        }
+
+        // 4. 활성 스니펫 검색
+        var matchedSnippet = _repository.GetActiveSnippetByKeyword(lastWord);
+
+        // 5. 매칭 성공 시 치환 이벤트 발생
+        if (matchedSnippet != null)
+        {
+            var result = new ExpanderResult
+            {
+                Keyword = lastWord,
+                Replacement = matchedSnippet.Replacement,
+                Delimiter = delimiter,
+                KeywordLength = lastWord.Length
+            };
+
+            OnExpansionNeeded?.Invoke(result);
+        }
+
+        // 6. 매칭 성공/실패 관계없이 버퍼 클리어 (일관성 유지)
+        _buffer.Clear();
+    }
+
+    /// <summary>
+    /// 버퍼에서 마지막 단어 추출
+    /// 구분자를 만나기 전까지의 문자열 반환
+    /// </summary>
+    private string ExtractLastWord()
+    {
+        string bufferStr = _buffer.ToString();
+        
+        // 끝에서부터 역순으로 구분자/공백 찾기
+        for (int i = bufferStr.Length - 1; i >= 0; i--)
+        {
+            if (IsDelimiter(bufferStr[i]) || char.IsWhiteSpace(bufferStr[i]))
+            {
+                // 구분자 이후의 문자열 반환
+                return bufferStr.Substring(i + 1);
+            }
+        }
+
+        // 구분자가 없으면 전체 버퍼가 마지막 단어
+        return bufferStr;
+    }
+
+    /// <summary>
+    /// 문자가 구분자인지 판별
+    /// 설정에 따라 동적으로 구분자 결정
+    /// </summary>
+    private bool IsDelimiter(char ch)
+    {
+        return ch switch
+        {
+            '\t' => _settings.UseTabAsDelimiter,
+            '.' => _settings.UsePeriodAsDelimiter,
+            ',' => _settings.UseCommaAsDelimiter,
+            ';' => _settings.UseSemicolonAsDelimiter,
+            '`' => _settings.UseBacktickAsDelimiter,
+            '\'' => _settings.UseSingleQuoteAsDelimiter,
+            '/' => _settings.UseSlashAsDelimiter,
+            _ => false
+        };
+    }
+
+    /// <summary>
+    /// 버퍼가 최대 크기를 초과하면 앞부분 제거
+    /// </summary>
+    private void TrimBufferIfNeeded()
+    {
+        if (_buffer.Length > MAX_BUFFER_LENGTH)
+        {
+            int excessLength = _buffer.Length - MAX_BUFFER_LENGTH;
+            _buffer.Remove(0, excessLength);
+        }
+    }
+}
+

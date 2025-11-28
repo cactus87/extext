@@ -41,3 +41,4 @@ public class AppSettings
         set => _textCharDelayMs = value >= 0 ? value : throw new ArgumentOutOfRangeException(nameof(value), "값은 0 이상이어야 합니다.");
     }
 }
+

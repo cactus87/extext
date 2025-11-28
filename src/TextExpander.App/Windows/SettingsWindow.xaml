@@ -1,0 +1,119 @@
+<Window x:Class="TextExpander.App.Windows.SettingsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="설정" Height="500" Width="450"
+        WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize">
+    
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        
+        <!-- 설정 내용 -->
+        <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <!-- 구분자 키 설정 -->
+                <GroupBox Header="구분자 키" Margin="0,0,0,15" Padding="10">
+                    <StackPanel>
+                        <TextBlock Text="체크된 키만 스니펫 확장 트리거로 사용됩니다." 
+                                   FontSize="11" Foreground="Gray" Margin="0,0,0,5"/>
+                        <TextBlock Text="※ 엔터, 스페이스, 백스페이스는 항상 버퍼를 초기화합니다." 
+                                   FontSize="11" Foreground="DarkOrange" Margin="0,0,0,10" FontWeight="Bold"/>
+                        
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+                            
+                            <!-- 왼쪽 열 -->
+                            <CheckBox Grid.Row="0" Grid.Column="0" Content="탭 (Tab)" IsChecked="{Binding UseTabAsDelimiter}" Margin="0,5"/>
+                            <CheckBox Grid.Row="1" Grid.Column="0" Content="마침표 (.)" IsChecked="{Binding UsePeriodAsDelimiter}" Margin="0,5"/>
+                            <CheckBox Grid.Row="2" Grid.Column="0" Content="쉼표 (,)" IsChecked="{Binding UseCommaAsDelimiter}" Margin="0,5"/>
+                            <CheckBox Grid.Row="3" Grid.Column="0" Content="세미콜론 (;)" IsChecked="{Binding UseSemicolonAsDelimiter}" Margin="0,5"/>
+                            
+                            <!-- 오른쪽 열 -->
+                            <CheckBox Grid.Row="0" Grid.Column="1" Content="백틱 (`)" IsChecked="{Binding UseBacktickAsDelimiter}" Margin="10,5,0,5"/>
+                            <CheckBox Grid.Row="1" Grid.Column="1" Content="작은따옴표 (')" IsChecked="{Binding UseSingleQuoteAsDelimiter}" Margin="10,5,0,5"/>
+                            <CheckBox Grid.Row="2" Grid.Column="1" Content="슬래시 (/)" IsChecked="{Binding UseSlashAsDelimiter}" Margin="10,5,0,5"/>
+                        </Grid>
+                    </StackPanel>
+                </GroupBox>
+                
+                <!-- 효과음 설정 -->
+                <GroupBox Header="효과음" Margin="0,0,0,15" Padding="10">
+                    <StackPanel>
+                        <CheckBox Content="스니펫 확장 시 효과음 재생" 
+                                  IsChecked="{Binding PlaySoundOnExpansion}" Margin="0,5"/>
+                    </StackPanel>
+                </GroupBox>
+                
+                <!-- 성능 설정 -->
+                <GroupBox Header="성능 (저사양 PC용)" Margin="0,0,0,15" Padding="10">
+                    <StackPanel>
+                        <TextBlock Text="키 입력 처리 간격 (밀리초)" Margin="0,0,0,5"/>
+                        <TextBlock Text="0 = 모든 키 처리 (기본), 10-50 = 저사양 PC에서 부하 감소" 
+                                   FontSize="11" Foreground="Gray" Margin="0,0,0,10"/>
+                        
+                        <StackPanel Orientation="Horizontal">
+                            <TextBox Text="{Binding KeyProcessingIntervalMs, UpdateSourceTrigger=PropertyChanged}" 
+                                     Width="80" VerticalContentAlignment="Center"/>
+                            <TextBlock Text="ms" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                        </StackPanel>
+                        
+                        <TextBlock Text="권장: 0 (즉시), 저사양: 10-20" 
+                                   FontSize="10" Foreground="DarkGray" Margin="0,5,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+                
+                <!-- 키보드 출력 딜레이 설정 -->
+                <GroupBox Header="키보드 출력 딜레이 (메모장 호환성)" Margin="0,0,0,15" Padding="10">
+                    <StackPanel>
+                        <TextBlock Text="메모장 등 느린 애플리케이션에서 문제가 있으면 값을 늘려보세요." 
+                                   FontSize="11" Foreground="Gray" Margin="0,0,0,10"/>
+                        
+                        <TextBlock Text="Backspace 키 사이 딜레이 (ms)" Margin="0,0,0,5"/>
+                        <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                            <TextBox Text="{Binding BackspaceDelayMs, UpdateSourceTrigger=PropertyChanged}" 
+                                     Width="80" VerticalContentAlignment="Center"/>
+                            <TextBlock Text="ms (권장: 10)" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                        </StackPanel>
+                        
+                        <TextBlock Text="텍스트 문자 사이 딜레이 (ms)" Margin="0,0,0,5"/>
+                        <StackPanel Orientation="Horizontal">
+                            <TextBox Text="{Binding TextCharDelayMs, UpdateSourceTrigger=PropertyChanged}" 
+                                     Width="80" VerticalContentAlignment="Center"/>
+                            <TextBlock Text="ms (권장: 5)" VerticalAlignment="Center" Margin="5,0,0,0"/>
+                        </StackPanel>
+                    </StackPanel>
+                </GroupBox>
+                
+                <!-- 자동 시작 설정 -->
+                <GroupBox Header="시작 프로그램" Margin="0,0,0,15" Padding="10">
+                    <StackPanel>
+                        <CheckBox Content="Windows 시작 시 자동 실행" 
+                                  IsChecked="{Binding AutoStartEnabled}" Margin="0,5"/>
+                        <TextBlock Text="체크 시 Windows 로그인 시 TextExpander가 자동으로 실행됩니다." 
+                                   FontSize="11" Foreground="Gray" Margin="0,5,0,0"/>
+                    </StackPanel>
+                </GroupBox>
+            </StackPanel>
+        </ScrollViewer>
+        
+        <!-- 버튼 영역 -->
+        <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Content="적용" Command="{Binding ApplyCommand}" Width="80" Margin="0,0,10,0" 
+                    Background="LightGreen" FontWeight="Bold"/>
+            <Button Content="취소" Command="{Binding CancelCommand}" Width="80"/>
+        </StackPanel>
+    </Grid>
+</Window>
+

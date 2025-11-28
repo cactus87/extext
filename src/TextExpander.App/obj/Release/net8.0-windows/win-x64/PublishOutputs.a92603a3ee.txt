@@ -1,0 +1,3 @@
+C:\ai\projects\text-expender\publish\TextExpander.pdb
+C:\ai\projects\text-expender\publish\TextExpander.Core.pdb
+C:\ai\projects\text-expender\publish\TextExpander.exe

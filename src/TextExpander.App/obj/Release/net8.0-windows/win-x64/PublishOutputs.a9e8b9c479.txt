@@ -1,0 +1,8 @@
+C:\ai\projects\text-expender\publish_20251127_172118\TextExpander.pdb
+C:\ai\projects\text-expender\publish_20251127_172118\D3DCompiler_47_cor3.dll
+C:\ai\projects\text-expender\publish_20251127_172118\PenImc_cor3.dll
+C:\ai\projects\text-expender\publish_20251127_172118\PresentationNative_cor3.dll
+C:\ai\projects\text-expender\publish_20251127_172118\vcruntime140_cor3.dll
+C:\ai\projects\text-expender\publish_20251127_172118\wpfgfx_cor3.dll
+C:\ai\projects\text-expender\publish_20251127_172118\TextExpander.Core.pdb
+C:\ai\projects\text-expender\publish_20251127_172118\TextExpander.exe

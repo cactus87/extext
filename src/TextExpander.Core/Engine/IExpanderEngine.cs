@@ -51,3 +51,4 @@ public interface IExpanderEngine
     /// </summary>
     void ResetBuffer();
 }
+

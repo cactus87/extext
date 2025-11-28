@@ -1,0 +1,11 @@
+C:\ai\projects\text-expender\src\TextExpander.Core\bin\Debug\net8.0\TextExpander.Core.deps.json
+C:\ai\projects\text-expender\src\TextExpander.Core\bin\Debug\net8.0\TextExpander.Core.dll
+C:\ai\projects\text-expender\src\TextExpander.Core\bin\Debug\net8.0\TextExpander.Core.pdb
+C:\ai\projects\text-expender\src\TextExpander.Core\obj\Debug\net8.0\TextExpander.Core.GeneratedMSBuildEditorConfig.editorconfig
+C:\ai\projects\text-expender\src\TextExpander.Core\obj\Debug\net8.0\TextExpander.Core.AssemblyInfoInputs.cache
+C:\ai\projects\text-expender\src\TextExpander.Core\obj\Debug\net8.0\TextExpander.Core.AssemblyInfo.cs
+C:\ai\projects\text-expender\src\TextExpander.Core\obj\Debug\net8.0\TextExpander.Core.csproj.CoreCompileInputs.cache
+C:\ai\projects\text-expender\src\TextExpander.Core\obj\Debug\net8.0\TextExpander.Core.dll
+C:\ai\projects\text-expender\src\TextExpander.Core\obj\Debug\net8.0\refint\TextExpander.Core.dll
+C:\ai\projects\text-expender\src\TextExpander.Core\obj\Debug\net8.0\TextExpander.Core.pdb
+C:\ai\projects\text-expender\src\TextExpander.Core\obj\Debug\net8.0\ref\TextExpander.Core.dll
