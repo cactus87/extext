@@ -6,8 +6,8 @@ namespace TextExpander.Core.Models;
 public class AppSettings
 {
     private int _keyProcessingIntervalMs = 0;
-    private int _backspaceDelayMs = 10;
-    private int _textCharDelayMs = 5;
+    private int _backspaceDelayMs = 13;
+    private int _textCharDelayMs = 7;
 
     // 구분자 키 설정
     public bool UseTabAsDelimiter { get; set; } = true;
