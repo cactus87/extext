@@ -1,0 +1,33 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dll
+*.pdb
+*.exe
+!*.App.csproj
+!*.Core.csproj
+!*.Tests.csproj
+
+## Build outputs
+publish/
+publish_*/
+
+## IDE
+.vs/
+.vscode/
+*.swp
+*~
+
+## Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+## OS
+.DS_Store
+Thumbs.db
