@@ -1,4 +1,5 @@
 ﻿using System.Windows;
+using System.IO;
 using TextExpander.App.Services;
 using TextExpander.App.ViewModels;
 using TextExpander.App.Windows;
@@ -25,10 +26,16 @@ public partial class App : System.Windows.Application
     private MainWindow? _mainWindow;
     private MainWindowViewModel? _viewModel;
     private AppSettings? _currentSettings;
+    private System.IO.StreamWriter? _logWriter;
 
     protected override async void OnStartup(StartupEventArgs e)
     {
         base.OnStartup(e);
+
+        // 디버그 로그 파일 초기화
+        var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "textexpander-debug.txt");
+        _logWriter = new System.IO.StreamWriter(logPath, append: true) { AutoFlush = true };
+        _logWriter.WriteLine($"\n=== TextExpander Started at {DateTime.Now:yyyy-MM-dd HH:mm:ss} ===");
 
         try
         {
@@ -63,6 +70,7 @@ public partial class App : System.Windows.Application
         _engine = new ExpanderEngine();
         _engine.SetRepository(_repository);
         _engine.SetSettings(_currentSettings);
+        ((ExpanderEngine)_engine).SetLogWriter((msg) => _logWriter?.WriteLine(msg));
 
         // 3. App 서비스 초기화
         _keyboardOutputService = new KeyboardOutputService();
@@ -115,6 +123,7 @@ public partial class App : System.Windows.Application
         };
 
         // ExpanderEngine → KeyboardOutputService 연결
+        // 주의: 엔진은 이벤트 발생 전에 이미 Disable 상태임 (ExpanderEngine.HandleDelimiter에서 처리)
         _engine.OnExpansionNeeded += (result) =>
         {
             // Dispatcher를 통해 UI 스레드에서 실행
@@ -122,27 +131,45 @@ public partial class App : System.Windows.Application
             {
                 try
                 {
-                    // 구분자가 화면에 찍히기를 기다림 (타이밍 이슈 해결)
-                    await Task.Delay(20);
-
+                    // 디버깅: 키워드와 구분자 확인
+                    _logWriter?.WriteLine($"[Expansion] Keyword: '{result.Keyword}' (Length: {result.KeywordLength}), Delimiter: '{result.Delimiter}'");
+                    
                     // 송신 플래그 설정 (재귀 방지)
                     _keyboardOutputService.SetSendingFlag(true);
                     _engine.SetSendingFlag(true);
+                    
+                    // 구분자가 화면에 찍히기를 기다림 (타이밍 이슈 해결)
+                    await Task.Delay(30);
 
                     // 1. 키워드 + 구분자 모두 삭제 (Backspace)
-                    _keyboardOutputService.SendBackspaces(result.KeywordLength + 1);
+                    int backspaceCount = result.KeywordLength + 1;
+                    _logWriter?.WriteLine($"[Expansion] Sending {backspaceCount} backspaces");
+                    _keyboardOutputService.SendBackspaces(backspaceCount);
+                    
+                    // 백스페이스가 완전히 처리되도록 대기
+                    await Task.Delay(_currentSettings?.BackspaceDelayMs ?? 13 * 2);
 
                     // 2. 대체 텍스트만 입력 (구분자 없음)
                     _keyboardOutputService.SendText(result.Replacement);
 
                     // 3. 효과음 재생
                     _soundService?.Play();
+                    
+                    _logWriter?.WriteLine($"[Expansion] Completed");
                 }
                 finally
                 {
                     // 송신 플래그 해제
                     _keyboardOutputService.SetSendingFlag(false);
                     _engine.SetSendingFlag(false);
+                    
+                    // 엔진 다시 활성화 전 버퍼 클리어 (확장 중 쌓인 입력 제거)
+                    _engine.ResetBuffer();
+                    
+                    // 엔진 다시 활성화 (충분한 지연 후)
+                    await Task.Delay(100);
+                    _engine.Enable();
+                    _logWriter?.WriteLine($"[Expansion] Engine re-enabled at {DateTime.Now:HH:mm:ss.fff}, buffer cleared");
                 }
             });
         };
@@ -239,6 +266,10 @@ public partial class App : System.Windows.Application
 
     protected override void OnExit(ExitEventArgs e)
     {
+        _logWriter?.WriteLine($"=== TextExpander Stopped at {DateTime.Now:yyyy-MM-dd HH:mm:ss} ===\n");
+        _logWriter?.Close();
+        _logWriter?.Dispose();
+        
         // 리소스 정리
         _keyboardHook?.Dispose();
         _trayIconService?.Dispose();

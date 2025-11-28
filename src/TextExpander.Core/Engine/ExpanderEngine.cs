@@ -18,6 +18,15 @@ public class ExpanderEngine : IExpanderEngine
     private bool _isSending = false;
     private bool _isEnabled = true;
     private DateTime _lastProcessTime = DateTime.MinValue;
+    private Action<string>? _logWriter;
+
+    /// <summary>
+    /// 로그 작성 함수 설정
+    /// </summary>
+    public void SetLogWriter(Action<string>? logWriter)
+    {
+        _logWriter = logWriter;
+    }
 
     /// <inheritdoc/>
     public event Action<ExpanderResult>? OnExpansionNeeded;
@@ -116,6 +125,9 @@ public class ExpanderEngine : IExpanderEngine
     {
         // 1. 버퍼에서 마지막 단어 추출
         string lastWord = ExtractLastWord();
+        
+        // 디버깅
+        _logWriter?.Invoke($"[HandleDelimiter] at {DateTime.Now:HH:mm:ss.fff} - Delimiter: '{delimiter}', Buffer: '{_buffer}', LastWord: '{lastWord}', Enabled: {_isEnabled}");
 
         // 2. 빈 단어는 무시하고 버퍼 클리어
         if (string.IsNullOrWhiteSpace(lastWord))
@@ -137,6 +149,10 @@ public class ExpanderEngine : IExpanderEngine
         // 5. 매칭 성공 시 치환 이벤트 발생
         if (matchedSnippet != null)
         {
+            // ★ 핵심: 이벤트 발생 전에 엔진 비활성화 (동기적으로 즉시 차단)
+            _isEnabled = false;
+            _buffer.Clear();  // 버퍼도 즉시 클리어
+            
             var result = new ExpanderResult
             {
                 Keyword = lastWord,
@@ -145,10 +161,12 @@ public class ExpanderEngine : IExpanderEngine
                 KeywordLength = lastWord.Length
             };
 
+            _logWriter?.Invoke($"[HandleDelimiter] Match found! Keyword: '{lastWord}', Length: {lastWord.Length}, Engine disabled at {DateTime.Now:HH:mm:ss.fff}");
             OnExpansionNeeded?.Invoke(result);
+            return;  // 이미 버퍼 클리어했으므로 리턴
         }
 
-        // 6. 매칭 성공/실패 관계없이 버퍼 클리어 (일관성 유지)
+        // 6. 매칭 실패 시에만 여기서 버퍼 클리어
         _buffer.Clear();
     }
 
