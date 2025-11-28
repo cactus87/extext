@@ -93,6 +93,12 @@ public class ExpanderEngine : IExpanderEngine
         _isSending = sending;
     }
 
+    /// <inheritdoc/>
+    public void ResetBuffer()
+    {
+        _buffer.Clear();
+    }
+
     /// <summary>
     /// 구분자 입력 처리: 마지막 단어 추출 및 스니펫 매칭
     /// </summary>
