@@ -119,15 +119,11 @@ public class KeyboardOutputService : IDisposable
                     CreateKeyInput(VK_BACK, true)
                 };
                 
-                uint result = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
+                SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
                 
                 // 각 키 사이 딜레이 (메모장 호환성)
-                // 딜레이 전에 백스페이스가 처리되도록 충분한 시간 확보
                 Thread.Sleep(_settings.BackspaceDelayMs);
             }
-            
-            // 모든 백스페이스 전송 후 추가 딜레이 (마지막 백스페이스가 처리되도록)
-            Thread.Sleep(_settings.BackspaceDelayMs);
         }
     }
 
