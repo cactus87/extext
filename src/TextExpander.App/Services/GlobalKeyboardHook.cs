@@ -71,6 +71,13 @@ public class GlobalKeyboardHook : IDisposable
     private IntPtr _lastForegroundWindow = IntPtr.Zero;
     private System.Threading.Timer? _focusCheckTimer;
 
+    // 키 중복 방지를 위한 마지막 키 입력 추적
+    private uint _lastVkCode = 0;
+    private uint _lastScanCode = 0;
+    private uint _lastFlags = 0;
+    private DateTime _lastKeyTime = DateTime.MinValue;
+    private const int KEY_DEBOUNCE_MS = 100; // 100ms 내 동일 키는 무시
+
     /// <summary>
     /// 키 입력 이벤트 (char 단위로 전달)
     /// </summary>
@@ -181,7 +188,25 @@ public class GlobalKeyboardHook : IDisposable
             return;
 
         uint vkCode = hookStruct.vkCode;
-        
+        uint scanCode = hookStruct.scanCode;
+        uint flags = hookStruct.flags;
+
+        // 키 중복 방지: 동일한 키 이벤트가 짧은 시간 내에 여러 번 전달될 수 있음
+        var now = DateTime.UtcNow;
+        if (vkCode == _lastVkCode && scanCode == _lastScanCode && flags == _lastFlags)
+        {
+            var elapsed = (now - _lastKeyTime).TotalMilliseconds;
+            if (elapsed < KEY_DEBOUNCE_MS)
+            {
+                return; // 중복 키 입력 무시
+            }
+        }
+
+        _lastVkCode = vkCode;
+        _lastScanCode = scanCode;
+        _lastFlags = flags;
+        _lastKeyTime = now;
+
         // 키보드 상태 가져오기 (Ctrl, Alt 등 조합키 확인용)
         var keyState = new byte[256];
         GetKeyboardState(keyState);

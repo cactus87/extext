@@ -132,6 +132,9 @@ public partial class App : System.Windows.Application
                     // 1. 키워드 + 구분자 모두 삭제 (Backspace)
                     _keyboardOutputService.SendBackspaces(result.KeywordLength + 1);
 
+                    // 백스페이스가 완전히 처리될 때까지 대기 (Cursor AI 등 느린 에디터 호환)
+                    await Task.Delay(_currentSettings?.BackspaceDelayMs ?? 13 * 2);
+
                     // 2. 대체 텍스트만 입력 (구분자 없음)
                     _keyboardOutputService.SendText(result.Replacement);
 

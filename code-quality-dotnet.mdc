@@ -1,0 +1,288 @@
+---
+description: C#/.NET (WPF/백엔드/콘솔 공통) 코드 품질 & 리뷰 체크리스트
+globs:
+  - "**/*.cs"
+type: agentRequested
+---
+
+# ✅ C#/.NET 코드 품질 체크리스트
+
+사용법: 코드 생성/리팩터링 후 **"이 코드를 code-quality-dotnet.mdc 기준으로 검토/개선해줘"** 라고 요청해서 자체 리뷰용으로 사용합니다.
+
+---
+
+## 1️⃣ 구조 & 아키텍처
+
+- [ ] **단일 책임 원칙(SRP)**: 클래스/메서드마다 역할이 하나로 명확한가?
+- [ ] **계층 분리**: UI, 도메인, 인프라(저장소/외부 API)가 섞이지 않았는가?
+- [ ] **의존성 방향**: 상위 레이어가 하위 구현에 직접 의존하지 않고 인터페이스/추상화에 의존하는가?
+- [ ] **순환 의존성**: 네임스페이스/프로젝트 간 순환 참조가 없는가?
+- [ ] **public API 최소화**: 외부에 노출할 필요 없는 타입/멤버는 `internal`/`private`으로 숨겼는가?
+
+---
+
+## 2️⃣ C# 코딩 스타일 & 네이밍
+
+### 명명 규칙
+
+- [ ] **.NET 코딩 컨벤션 준수**
+  - 타입/메서드/프로퍼티: `PascalCase`
+  - 매개변수/로컬 변수: `camelCase`
+  - private 필드: `_camelCase`
+  - 상수: `UPPER_SNAKE_CASE` 또는 `PascalCase` (클래스 상수)
+
+- [ ] **의미 있는 이름**: `data`, `tmp`, `flag`, `obj` 같은 모호한 이름 없는가?
+  - ❌ Bad: `int cnt; string msg; var d;`
+  - ✅ Good: `int itemCount; string errorMessage; var userData;`
+
+- [ ] **축약어 최소화**: 도메인 필수 약어 외에는 풀어서 썼는가?
+  - ❌ `usr`, `mgr`, `cfg`, `auth_svr`
+  - ✅ `user`, `manager`, `configuration`, `authenticationService`
+
+- [ ] **boolean 프로퍼티/메서드**: 긍정형 질문 형태
+  - ✅ `IsEnabled`, `HasItems`, `CanExecute`, `IsValidEmail()`
+  - ❌ `Enabled` (이건 상태인지 값인지 불명확), `Invalid()` (부정형)
+
+- [ ] **async 메서드**: `Async` 접미사 붙였는가?
+  - ✅ `GetUserAsync()`, `SaveAsync()`, `FetchDataAsync()`
+  - ❌ `GetUser()` (비동기인지 동기인지 불명확)
+
+- [ ] **매직 넘버/문자열 상수화**: 반복되거나 의미 있는 값들은 `const`/`static readonly`로 분리했는가?
+  - ❌ `if (buffer.Length > 200) { ... }`
+  - ✅ `private const int MAX_BUFFER_LENGTH = 200;`
+
+---
+
+## 3️⃣ 정확성 & 방어적 프로그래밍
+
+- [ ] **null 처리**: 참조형 변수에 대해 null 가능성을 모두 점검했는가?
+  - 필요한 곳에 `ArgumentNullException` / `NullReferenceException` 예방
+  - nullable reference type (`#nullable enable`) 사용 고려
+
+- [ ] **경계 조건**: 빈 컬렉션, 0, 음수, 매우 큰 값 등 극단값을 고려했는가?
+  - ❌ `list[0]` 안에 길이 검사 없음
+  - ✅ `if (list.Count > 0) { ... }`
+
+- [ ] **컬렉션/인덱스**: 배열 접근 시 범위 검사가 있는가?
+  - `IndexOutOfRangeException` 가능성 제거
+
+- [ ] **타입 강화**: 모든 걸 `string`으로 표현하지 않는가?
+  - ❌ `string status = "pending";` (의도 불명확)
+  - ✅ `enum OrderStatus { Pending, Completed }`
+
+- [ ] **불변성**: 변경되면 안 되는 값/객체는 불변으로 설계했는가?
+  - `record` 타입 사용
+  - `get`-only property / `init` accessor 활용
+  - collection을 `IReadOnlyList<T>` 반환
+
+---
+
+## 4️⃣ 예외 처리 & 로깅
+
+- [ ] **의미 있는 예외 타입**: 모든 에러를 `Exception` 한 종류로만 던지지 않았는가?
+  - ✅ `throw new ArgumentNullException(nameof(user));`
+  - ✅ `throw new InvalidOperationException("Cannot save without ID");`
+  - ❌ `throw new Exception("Error");`
+
+- [ ] **예외 삼키기 금지**: 빈 `catch {}` 또는 로그 없이 무시되는 예외가 없는가?
+  - ❌ `try { ... } catch { }`
+  - ✅ `try { ... } catch (Exception ex) { logger.LogError(ex, "..."); throw; }`
+
+- [ ] **예외 메시지**: 문제 원인 파악에 도움이 될 만큼 구체적인가?
+  - ❌ `throw new ArgumentException("Invalid value");`
+  - ✅ `throw new ArgumentException($"Age must be positive, got: {age}", nameof(age));`
+
+- [ ] **로깅**: 중요한 실패/경고는 로깅 시스템(Serilog, ILogger 등)에 기록하는가?
+  - 앱 시작/종료
+  - 예외 및 스택 트레이스
+  - 중요한 비즈니스 이벤트
+  - 성능 경고 (느린 작업)
+
+- [ ] **흐름 제어에 예외 남용 금지**: 정상 제어 흐름에 예외를 쓰지 않았는가?
+  - ❌ `try { ... } catch { return null; }` (이건 제어 흐름이지 예외 아님)
+  - ✅ `if (!int.TryParse(input, out var value)) { return null; }`
+
+---
+
+## 5️⃣ async/await & 비동기 처리
+
+- [ ] **I/O 바운드 작업 비동기화**: 파일/네트워크/DB 접근은 `async`/`await` 사용했는가?
+  - ❌ `string content = File.ReadAllText(path);` (스레드 블로킹)
+  - ✅ `string content = await File.ReadAllTextAsync(path);`
+
+- [ ] **동기 차단 금지**: `.Result`, `.Wait()` 등으로 Task를 동기 대기하지 않았는가?
+  - ❌ `var user = GetUserAsync().Result;` (데드락 위험)
+  - ✅ `var user = await GetUserAsync();`
+
+- [ ] **ConfigureAwait 고려**: 라이브러리/백엔드 코드에서 UI 컨텍스트 필요 없으면 `ConfigureAwait(false)` 사용했는가?
+
+- [ ] **async 메서드 네이밍**: `Async` 접미사를 붙였는가?
+  - ✅ `Task<User> GetUserAsync()`
+  - ❌ `Task<User> GetUser()`
+
+- [ ] **Task 무시 금지**: 반환되는 Task를 기다리거나 명시적으로 fire-and-forget 처리했는가?
+  - ❌ `LogUserActionAsync(userId);` (결과를 안 기다림 → 예외 무시됨)
+  - ✅ `_ = LogUserActionAsync(userId);` (명시적으로 무시)
+  - ✅ `await LogUserActionAsync(userId);` (결과 대기)
+
+- [ ] **동시성 이슈**: 공유 상태를 여러 Task가 수정하지 않는가?
+  - 필요한 곳에 `lock`, `SemaphoreSlim`, `Interlocked` 등 동기화 메커니즘 사용
+  - 스레드 안전 컬렉션(`ConcurrentDictionary` 등) 고려
+
+---
+
+## 6️⃣ 성능 & 메모리
+
+- [ ] **불필요한 할당**: 루프 안에서 문자열 연결/박싱/새 객체 생성이 과도하지 않은가?
+  - ❌ `for (int i = 0; i < 1000; i++) result += str[i];` (매번 새 string)
+  - ✅ `var sb = new StringBuilder(); for (int i = 0; i < 1000; i++) sb.Append(str[i]);`
+
+- [ ] **LINQ 남용**: 성능 민감 구간에서는 복잡한 LINQ 체인 대신 명시적 루프 사용했는가?
+  - 프로파일링 후 병목이면 재검토
+
+- [ ] **컬렉션 선택**: 용도에 맞는 컬렉션 타입을 사용했는가?
+  - 순차 접근: `List<T>`
+  - 빠른 키-값 매핑: `Dictionary<K,V>`
+  - 중복 제거/빠른 검색: `HashSet<T>`
+  - 멀티맵: `Dictionary<K, List<V>>` 또는 `Lookup<K,V>`
+
+- [ ] **Dispose 패턴**: `IDisposable` 자원(`DbConnection`, `FileStream` 등)을 `using`/`await using`으로 적절히 해제하는가?
+  - ❌ `var stream = new FileStream(...); stream.Read(...);` (Close 안 함)
+  - ✅ `using (var stream = new FileStream(...)) { stream.Read(...); }`
+  - ✅ `await using (var stream = File.OpenRead(...)) { ... }`
+
+- [ ] **캐싱**: 자주 사용하는 비싼 연산/데이터는 캐시를 고려했는가?
+  - 계산 결과, 데이터베이스 쿼리, 정규식 컴파일 등
+
+---
+
+## 7️⃣ WPF / 데스크톱 전용 항목
+
+(해당 프로젝트가 WPF/WinUI/데스크톱 UI를 가질 때 확인)
+
+### MVVM & 아키텍처
+
+- [ ] **MVVM 준수**: 뷰 로직과 비즈니스 로직이 ViewModel/서비스로 분리되었는가?
+  - ✅ View(XAML): UI 요소만, 바인딩만 선언
+  - ✅ ViewModel: 프로퍼티, 커맨드, 상태 관리
+  - ✅ Model/Service: 비즈니스 로직, 데이터 접근
+  - ❌ Code-behind에 비즈니스 로직 (클릭 이벤트에 DB 쿼리 등)
+
+- [ ] **코드 비하인드 최소화**: Code-behind는 간단한 이벤트/UI 연결만 담당하는가?
+  - ✅ `this.Close();`, `textBox.Focus();`
+  - ❌ 이벤트 핸들러에 데이터 조작/계산 로직
+
+### 데이터 바인딩
+
+- [ ] **INotifyPropertyChanged**: 프로퍼티 변경이 UI에 반영되도록 구현했는가?
+  - ✅ `RaisePropertyChanged()` 호출 또는 MVVM Toolkit의 `[ObservableProperty]`
+  - ✅ 컬렉션은 `ObservableCollection<T>` 사용
+
+- [ ] **바인딩 오류 없음**: 디버그 출력 창에 "BindingExpression path error" 같은 메시지 없는가?
+
+- [ ] **명령 패턴**: 버튼/메뉴 동작에 `ICommand`를 사용하는가?
+  - ✅ `ICommand SaveCommand { get; }`와 XAML `Command="{Binding SaveCommand}"`
+  - ❌ 코드비하인드 `Click="Button_Click"`
+
+### 리소스 & 스타일
+
+- [ ] **스타일 중복 제거**: 반복되는 스타일/XAML 리소스를 ResourceDictionary로 분리했는가?
+  - `ResourceDictionary`에 공통 색상, 폰트 크기, 버튼 스타일 등을 정의
+  - `<ResourceDictionary.MergedDictionaries>`로 여러 파일 병합
+
+### 성능
+
+- [ ] **불필요한 레이아웃 패스**: 복잡한 중첩 Panel/거대한 컨트롤 트리 없는가?
+- [ ] **가상화**: 큰 목록(1000+)에는 `VirtualizingPanel` / `VirtualizingStackPanel` 설정이 있는가?
+  - ListBox, ItemsControl에 `ScrollViewer.CanContentScroll="True"` 설정
+- [ ] **이미지 최적화**: 고해상도 이미지를 그냥 로드하지 않고, 필요한 크기로 스케일/캐시했는가?
+- [ ] **바인딩 성능**: 과도한 바인딩, 복잡한 컨버터 없는가?
+
+---
+
+## 8️⃣ 테스트 & 품질 보증
+
+- [ ] **단위 테스트**: 핵심 도메인/서비스(비즈니스 규칙, 파서, 엔진)에 단위 테스트가 있는가?
+  - 테스트 프로젝트: `.Tests` 또는 `.UnitTests` 접미사
+  - 테스트 프레임워크: xUnit, NUnit, MSTest
+
+- [ ] **테스트 명명**: 테스트 이름이 "무엇을 검증하는지" 명확히 설명하는가?
+  - ✅ `Given_ValidEmail_When_Validate_Then_ReturnsTrue()`
+  - ✅ `ExceptionThrown_When_NegativeAge_Provided()`
+  - ❌ `Test1()`, `Validation_Test()`
+
+- [ ] **케이스 커버리지**: 정상/에러/경계 케이스를 모두 포함하는가?
+  - 정상: `GetUser(validId)` → returns user
+  - 에러: `GetUser(null)` → throws `ArgumentNullException`
+  - 경계: `GetUser(-1)` → throws or returns null (의도에 따라)
+
+- [ ] **외부 의존성 격리**: DB, 파일, 네트워크는 mocking/stubbing으로 격리했는가?
+  - Moq 라이브러리로 `IRepository` 등 mock 객체 생성
+
+- [ ] **테스트 독립성**: 테스트가 실행 순서에 의존하지 않고, 독립적으로 실행되는가?
+
+---
+
+## 9️⃣ 보안 & 안정성
+
+- [ ] **입력 검증**: 외부 입력(파일, 네트워크, 사용자 입력 등)에 대해 유효성 검사를 수행하는가?
+  - 길이 검사, 타입 검사, 범위 검사, 포맷 검사
+
+- [ ] **민감 정보 보호**: 비밀번호/토큰/개인정보를 로그/예외 메시지에 남기지 않는가?
+  - ❌ `logger.LogError($"Auth failed: user={email}, password={pwd}");`
+  - ✅ `logger.LogError("Authentication failed for user {Email}", email);` (비밀번호 제외)
+
+- [ ] **파일/경로 처리**: 경로 조작 공격, 임시 파일 안전성, 권한 문제를 고려했는가?
+  - `Path.Combine()` 사용 (문자열 연결 금지)
+  - 임시 파일은 `Path.GetTempFileName()`, `Path.GetTempPath()` 활용
+
+- [ ] **백그라운드 Task 오류**: Task에서 던져진 예외가 삼켜지지 않고 로깅/복구되는가?
+  - `TaskScheduler.UnobservedTaskException` 핸들러 설정
+
+- [ ] **장애 허용(Resilience)**: 일부 기능 실패 시 전체 앱이 크래시하지 않고 degrade 되도록 설계했는가?
+  - 외부 API 호출 실패 → 캐시된 데이터 사용
+  - 선택적 기능 실패 → 경고만 표시
+
+---
+
+## 🔟 리팩터링 우선순위
+
+리뷰 결과 문제가 발견되면, 다음 순서로 리팩터링을 제안/적용해 주세요.
+
+1. **🔴 가장 위험한 부분부터**
+   - 예외 삼키기 / 무시
+   - 잘못된 null 처리
+   - 보안 이슈 (입력 검증 누락, 민감 정보 노출)
+   - 스레드 안전성 문제
+
+2. **🟠 구조 개선**
+   - SRP 위반 클래스/메서드 분리
+   - 계층 간 책임 정리
+   - 순환 의존성 제거
+
+3. **🟡 가독성 향상**
+   - 의미 있는 네이밍
+   - 메서드 분리 (길이 50줄 이상이면 의심)
+   - 주석 정리 ("무엇/어떻게"가 아닌 "왜"만)
+
+4. **🟢 성능/메모리**
+   - 프로파일링 데이터 수집
+   - 실제 병목 지점만 최적화 (추측 금지)
+   - 캐싱, 할당 줄이기 등
+
+5. **🔵 테스트 보강**
+   - 리팩터링된 코드에 대해 회귀 방지용 단위 테스트 추가
+   - 엣지 케이스 테스트 작성
+
+---
+
+## 📚 참고 자료 & 원칙
+
+- Microsoft .NET Coding Conventions: https://learn.microsoft.com/dotnet/csharp/fundamentals/coding-style/coding-conventions
+- C# Best Practices: Clean Code, SOLID 원칙
+- Async/Await Best Practices: Stephen Cleary의 가이드
+- Exception Handling: 의미 있는 타입 선택, 정보 완전성
+- Testing: AAA 패턴(Arrange, Act, Assert), 테스트 피라미드
+
+> 이 체크리스트는 C#/.NET 코드 리뷰 및 AI 기반 리팩터링에서 공통적으로 권장되는 2025년 기준 베스트 프랙티스를 바탕으로 작성되었습니다.  
+> **필요할 때만 수동으로 적용(agentRequested)**하도록 사용하는 것을 권장합니다.

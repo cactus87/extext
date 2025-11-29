@@ -94,10 +94,10 @@ C:\ai\projects\text-expender\src\TextExpander.Core.Tests\obj\Release\net8.0\Text
 C:\ai\projects\text-expender\src\TextExpander.Core.Tests\obj\Release\net8.0\TextExpander.Core.Tests.AssemblyInfoInputs.cache
 C:\ai\projects\text-expender\src\TextExpander.Core.Tests\obj\Release\net8.0\TextExpander.Core.Tests.AssemblyInfo.cs
 C:\ai\projects\text-expender\src\TextExpander.Core.Tests\obj\Release\net8.0\TextExpander.Core.Tests.csproj.CoreCompileInputs.cache
+C:\ai\projects\text-expender\src\TextExpander.Core.Tests\obj\Release\net8.0\TextExpander.Core.Tests.sourcelink.json
 C:\ai\projects\text-expender\src\TextExpander.Core.Tests\obj\Release\net8.0\TextExpa.E06C14DA.Up2Date
 C:\ai\projects\text-expender\src\TextExpander.Core.Tests\obj\Release\net8.0\TextExpander.Core.Tests.dll
 C:\ai\projects\text-expender\src\TextExpander.Core.Tests\obj\Release\net8.0\refint\TextExpander.Core.Tests.dll
 C:\ai\projects\text-expender\src\TextExpander.Core.Tests\obj\Release\net8.0\TextExpander.Core.Tests.pdb
 C:\ai\projects\text-expender\src\TextExpander.Core.Tests\obj\Release\net8.0\TextExpander.Core.Tests.genruntimeconfig.cache
 C:\ai\projects\text-expender\src\TextExpander.Core.Tests\obj\Release\net8.0\ref\TextExpander.Core.Tests.dll
-C:\ai\projects\text-expender\src\TextExpander.Core.Tests\obj\Release\net8.0\TextExpander.Core.Tests.sourcelink.json

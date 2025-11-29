@@ -113,17 +113,20 @@ public class KeyboardOutputService : IDisposable
             // 메모장 등 느린 애플리케이션 호환성을 위해 한 번에 하나씩 전송
             for (int i = 0; i < count; i++)
             {
-                var inputs = new INPUT[]
-                {
-                    CreateKeyInput(VK_BACK, false),
-                    CreateKeyInput(VK_BACK, true)
-                };
+                // KeyDown과 KeyUp을 분리하여 전송 (Cursor AI 등 일부 에디터 호환성)
+                var keyDown = new INPUT[] { CreateKeyInput(VK_BACK, false) };
+                var keyUp = new INPUT[] { CreateKeyInput(VK_BACK, true) };
                 
-                SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
+                SendInput(1, keyDown, Marshal.SizeOf<INPUT>());
+                Thread.Sleep(10); // KeyDown-KeyUp 사이 딜레이 (Cursor AI 호환)
+                SendInput(1, keyUp, Marshal.SizeOf<INPUT>());
                 
                 // 각 키 사이 딜레이 (메모장 호환성)
                 Thread.Sleep(_settings.BackspaceDelayMs);
             }
+            
+            // 모든 백스페이스 전송 후 추가 딜레이 (마지막 백스페이스가 완전히 처리되도록)
+            Thread.Sleep(_settings.BackspaceDelayMs);
         }
     }
 

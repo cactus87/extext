@@ -1,3 +1,4 @@
+C:\ai\projects\text-expender\src\TextExpander.App\bin\Release\net8.0-windows\Resources\app.ico
 C:\ai\projects\text-expender\src\TextExpander.App\bin\Release\net8.0-windows\TextExpander.exe
 C:\ai\projects\text-expender\src\TextExpander.App\bin\Release\net8.0-windows\TextExpander.deps.json
 C:\ai\projects\text-expender\src\TextExpander.App\bin\Release\net8.0-windows\TextExpander.runtimeconfig.json
@@ -14,18 +15,17 @@ C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\Win
 C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\Windows\MainWindow.g.cs
 C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\Windows\SettingsWindow.g.cs
 C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\App.g.cs
+C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\TextExpander_Content.g.cs
 C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\TextExpander_MarkupCompile.cache
 C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\TextExpander.g.resources
 C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\TextExpander.App.GeneratedMSBuildEditorConfig.editorconfig
 C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\TextExpander.App.AssemblyInfoInputs.cache
 C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\TextExpander.App.AssemblyInfo.cs
 C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\TextExpander.App.csproj.CoreCompileInputs.cache
+C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\TextExpander.App.sourcelink.json
 C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\TextExpa.945A89C7.Up2Date
 C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\TextExpander.dll
 C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\refint\TextExpander.dll
 C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\TextExpander.pdb
 C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\TextExpander.App.genruntimeconfig.cache
 C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\ref\TextExpander.dll
-C:\ai\projects\text-expender\src\TextExpander.App\bin\Release\net8.0-windows\Resources\app.ico
-C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\TextExpander_Content.g.cs
-C:\ai\projects\text-expender\src\TextExpander.App\obj\Release\net8.0-windows\TextExpander.App.sourcelink.json

@@ -1,0 +1,79 @@
+[1mdiff --git a/src/TextExpander.App/Services/KeyboardOutputService.cs b/src/TextExpander.App/Services/KeyboardOutputService.cs[m
+[1mindex 0340395..a41eb44 100644[m
+[1m--- a/src/TextExpander.App/Services/KeyboardOutputService.cs[m
+[1m+++ b/src/TextExpander.App/Services/KeyboardOutputService.cs[m
+[36m@@ -79,6 +79,7 @@[m [mpublic class KeyboardOutputService : IDisposable[m
+     private volatile bool _isSending = false;[m
+     private readonly object _sendLock = new();[m
+     private AppSettings _settings = new();[m
+[32m+[m[32m    private Action<string>? _logWriter;[m
+ [m
+     /// <summary>[m
+     /// 현재 키 송신 중인지 여부 (스레드 안전)[m
+[36m@@ -101,6 +102,14 @@[m [mpublic class KeyboardOutputService : IDisposable[m
+         _settings = settings ?? throw new ArgumentNullException(nameof(settings));[m
+     }[m
+ [m
+[32m+[m[32m    /// <summary>[m
+[32m+[m[32m    /// 로그 작성 함수 설정[m
+[32m+[m[32m    /// </summary>[m
+[32m+[m[32m    public void SetLogWriter(Action<string>? logWriter)[m
+[32m+[m[32m    {[m
+[32m+[m[32m        _logWriter = logWriter;[m
+[32m+[m[32m    }[m
+[32m+[m
+     /// <summary>[m
+     /// Backspace 키를 지정된 횟수만큼 전송[m
+     /// </summary>[m
+[36m@@ -119,11 +128,15 @@[m [mpublic class KeyboardOutputService : IDisposable[m
+                     CreateKeyInput(VK_BACK, true)[m
+                 };[m
+                 [m
+[31m-                SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());[m
+[32m+[m[32m                uint result = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());[m
+                 [m
+                 // 각 키 사이 딜레이 (메모장 호환성)[m
+[32m+[m[32m                // 딜레이 전에 백스페이스가 처리되도록 충분한 시간 확보[m
+                 Thread.Sleep(_settings.BackspaceDelayMs);[m
+             }[m
+[32m+[m[41m            [m
+[32m+[m[32m            // 모든 백스페이스 전송 후 추가 딜레이 (마지막 백스페이스가 처리되도록)[m
+[32m+[m[32m            Thread.Sleep(_settings.BackspaceDelayMs);[m
+         }[m
+     }[m
+ [m
+[36m@@ -134,8 +147,11 @@[m [mpublic class KeyboardOutputService : IDisposable[m
+     {[m
+         if (string.IsNullOrEmpty(text)) return;[m
+ [m
+[32m+[m[32m        _logWriter?.Invoke($"[SendText] Starting to send {text.Length} chars: '{text}'");[m
+[32m+[m
+         lock (_sendLock)[m
+         {[m
+[32m+[m[32m            int sentCount = 0;[m
+             foreach (char ch in text)[m
+             {[m
+                 INPUT[] inputs;[m
+[36m@@ -172,11 +188,21 @@[m [mpublic class KeyboardOutputService : IDisposable[m
+                     };[m
+                 }[m
+ [m
+[31m-                SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());[m
+[32m+[m[32m                uint result = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());[m
+[32m+[m[32m                if (result != inputs.Length)[m
+[32m+[m[32m                {[m
+[32m+[m[32m                    int error = Marshal.GetLastWin32Error();[m
+[32m+[m[32m                    _logWriter?.Invoke($"[SendText] SendInput FAILED for char '{ch}': result={result}, expected={inputs.Length}, error={error}");[m
+[32m+[m[32m                }[m
+[32m+[m[32m                else[m
+[32m+[m[32m                {[m
+[32m+[m[32m                    sentCount++;[m
+[32m+[m[32m                }[m
+                 [m
+                 // 각 문자 사이 딜레이 (메모장 호환성)[m
+                 Thread.Sleep(_settings.TextCharDelayMs);[m
+             }[m
+[32m+[m[32m            _logWriter?.Invoke($"[SendText] Completed: sent {sentCount}/{text.Length} chars");[m
+         }[m
+     }[m
+ [m

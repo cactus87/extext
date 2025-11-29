@@ -15,7 +15,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCopyrightAttribute("Copyright © 2024")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("Windows용 전역 텍스트 확장기")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f40db411e935a9c41998fbb7c1845f8e01aa7b68")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a9d7c1204d129b23131b5f90d3d43a169552de44")]
 [assembly: System.Reflection.AssemblyProductAttribute("TextExpander")]
 [assembly: System.Reflection.AssemblyTitleAttribute("TextExpander")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

@@ -1,0 +1,229 @@
+commit 4dee829f86e32af5bf50935a092802ade6fa9d2c
+Author: cactus87 <cactus87@github.com>
+Date:   Sat Nov 29 04:38:38 2025 +0900
+
+    諛깆뒪?섏씠??以묐났 ?ㅽ뻾 臾몄젣 ?닿껐
+    
+    - SendBackspaces ?몄텧 ??異붽? ?쒕젅??異붽??섏뿬 諛깆뒪?섏씠??泥섎━ ?꾨즺 ?湲?    - SendBackspaces? SendText ?ъ씠 ?湲??쒓컙 異붽??섏뿬 ??대컢 異⑸룎 諛⑹?
+    - HandleDelimiter?먯꽌 ?대깽??諛쒖깮 ???붿쭊 鍮꾪솢?깊솕濡?以묐났 泥섎━ 諛⑹?
+    - ?ㅻ낫???꾪겕 ?붾컮?댁뒪 ?쒓컙 利앷? (50ms ??100ms) 諛?flags 泥댄겕 異붽?
+    - ?뺤옣 ?꾨즺 ??踰꾪띁 紐낆떆???대━??異붽?
+
+diff --git a/src/TextExpander.App/App.xaml.cs b/src/TextExpander.App/App.xaml.cs
+index a9579f9..ee9c0c5 100644
+--- a/src/TextExpander.App/App.xaml.cs
++++ b/src/TextExpander.App/App.xaml.cs
+@@ -1,4 +1,5 @@
+ 癤퓎sing System.Windows;
++using System.IO;
+ using TextExpander.App.Services;
+ using TextExpander.App.ViewModels;
+ using TextExpander.App.Windows;
+@@ -25,11 +26,17 @@ public partial class App : System.Windows.Application
+     private MainWindow? _mainWindow;
+     private MainWindowViewModel? _viewModel;
+     private AppSettings? _currentSettings;
++    private System.IO.StreamWriter? _logWriter;
+ 
+     protected override async void OnStartup(StartupEventArgs e)
+     {
+         base.OnStartup(e);
+ 
++        // ?붾쾭洹?濡쒓렇 ?뚯씪 珥덇린??+        var logPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.Desktop), "textexpander-debug.txt");
++        _logWriter = new System.IO.StreamWriter(logPath, append: true) { AutoFlush = true };
++        _logWriter.WriteLine($"\n=== TextExpander Started at {DateTime.Now:yyyy-MM-dd HH:mm:ss} ===");
++
+         try
+         {
+             await InitializeServicesAsync();
+@@ -63,6 +70,7 @@ public partial class App : System.Windows.Application
+         _engine = new ExpanderEngine();
+         _engine.SetRepository(_repository);
+         _engine.SetSettings(_currentSettings);
++        ((ExpanderEngine)_engine).SetLogWriter((msg) => _logWriter?.WriteLine(msg));
+ 
+         // 3. App ?쒕퉬??珥덇린??         _keyboardOutputService = new KeyboardOutputService();
+@@ -115,6 +123,7 @@ public partial class App : System.Windows.Application
+         };
+ 
+         // ExpanderEngine ??KeyboardOutputService ?곌껐
++        // 二쇱쓽: ?붿쭊? ?대깽??諛쒖깮 ?꾩뿉 ?대? Disable ?곹깭??(ExpanderEngine.HandleDelimiter?먯꽌 泥섎━)
+         _engine.OnExpansionNeeded += (result) =>
+         {
+             // Dispatcher瑜??듯빐 UI ?ㅻ젅?쒖뿉???ㅽ뻾
+@@ -122,27 +131,45 @@ public partial class App : System.Windows.Application
+             {
+                 try
+                 {
+-                    // 援щ텇?먭? ?붾㈃??李랁엳湲곕? 湲곕떎由?(??대컢 ?댁뒋 ?닿껐)
+-                    await Task.Delay(20);
+-
++                    // ?붾쾭源? ?ㅼ썙?쒖? 援щ텇???뺤씤
++                    _logWriter?.WriteLine($"[Expansion] Keyword: '{result.Keyword}' (Length: {result.KeywordLength}), Delimiter: '{result.Delimiter}'");
++                    
+                     // ?≪떊 ?뚮옒洹??ㅼ젙 (?ш? 諛⑹?)
+                     _keyboardOutputService.SetSendingFlag(true);
+                     _engine.SetSendingFlag(true);
++                    
++                    // 援щ텇?먭? ?붾㈃??李랁엳湲곕? 湲곕떎由?(??대컢 ?댁뒋 ?닿껐)
++                    await Task.Delay(30);
+ 
+                     // 1. ?ㅼ썙??+ 援щ텇??紐⑤몢 ??젣 (Backspace)
+-                    _keyboardOutputService.SendBackspaces(result.KeywordLength + 1);
++                    int backspaceCount = result.KeywordLength + 1;
++                    _logWriter?.WriteLine($"[Expansion] Sending {backspaceCount} backspaces");
++                    _keyboardOutputService.SendBackspaces(backspaceCount);
++                    
++                    // 諛깆뒪?섏씠?ㅺ? ?꾩쟾??泥섎━?섎룄濡??湲?+                    await Task.Delay(_currentSettings?.BackspaceDelayMs ?? 13 * 2);
+ 
+                     // 2. ?泥??띿뒪?몃쭔 ?낅젰 (援щ텇???놁쓬)
+                     _keyboardOutputService.SendText(result.Replacement);
+ 
+                     // 3. ?④낵???ъ깮
+                     _soundService?.Play();
++                    
++                    _logWriter?.WriteLine($"[Expansion] Completed");
+                 }
+                 finally
+                 {
+                     // ?≪떊 ?뚮옒洹??댁젣
+                     _keyboardOutputService.SetSendingFlag(false);
+                     _engine.SetSendingFlag(false);
++                    
++                    // ?붿쭊 ?ㅼ떆 ?쒖꽦????踰꾪띁 ?대━??(?뺤옣 以??볦씤 ?낅젰 ?쒓굅)
++                    _engine.ResetBuffer();
++                    
++                    // ?붿쭊 ?ㅼ떆 ?쒖꽦??(異⑸텇??吏????
++                    await Task.Delay(100);
++                    _engine.Enable();
++                    _logWriter?.WriteLine($"[Expansion] Engine re-enabled at {DateTime.Now:HH:mm:ss.fff}, buffer cleared");
+                 }
+             });
+         };
+@@ -239,6 +266,10 @@ public partial class App : System.Windows.Application
+ 
+     protected override void OnExit(ExitEventArgs e)
+     {
++        _logWriter?.WriteLine($"=== TextExpander Stopped at {DateTime.Now:yyyy-MM-dd HH:mm:ss} ===\n");
++        _logWriter?.Close();
++        _logWriter?.Dispose();
++        
+         // 由ъ냼???뺣━
+         _keyboardHook?.Dispose();
+         _trayIconService?.Dispose();
+diff --git a/src/TextExpander.App/Services/GlobalKeyboardHook.cs b/src/TextExpander.App/Services/GlobalKeyboardHook.cs
+index 2e05ccd..a09dff3 100644
+--- a/src/TextExpander.App/Services/GlobalKeyboardHook.cs
++++ b/src/TextExpander.App/Services/GlobalKeyboardHook.cs
+@@ -70,6 +70,13 @@ public class GlobalKeyboardHook : IDisposable
+     private bool _disposed = false;
+     private IntPtr _lastForegroundWindow = IntPtr.Zero;
+     private System.Threading.Timer? _focusCheckTimer;
++    
++    // ??以묐났 諛⑹?瑜??꾪븳 留덉?留????낅젰 異붿쟻
++    private uint _lastVkCode = 0;
++    private uint _lastScanCode = 0;
++    private uint _lastFlags = 0;
++    private DateTime _lastKeyTime = DateTime.MinValue;
++    private const int KEY_DEBOUNCE_MS = 100; // 100ms ???숈씪 ?ㅻ뒗 臾댁떆 (???됰꼮?섍쾶)
+ 
+     /// <summary>
+     /// ???낅젰 ?대깽??(char ?⑥쐞濡??꾨떖)
+@@ -181,6 +188,25 @@ public class GlobalKeyboardHook : IDisposable
+             return;
+ 
+         uint vkCode = hookStruct.vkCode;
++        uint scanCode = hookStruct.scanCode;
++        uint flags = hookStruct.flags;
++        uint time = hookStruct.time;
++        
++        // ??以묐났 諛⑹?: ?숈씪?????대깽?멸? 吏㏃? ?쒓컙 ?댁뿉 ?щ윭 踰??꾨떖?????덉쓬
++        var now = DateTime.UtcNow;
++        if (vkCode == _lastVkCode && scanCode == _lastScanCode && flags == _lastFlags)
++        {
++            var elapsed = (now - _lastKeyTime).TotalMilliseconds;
++            if (elapsed < KEY_DEBOUNCE_MS)
++            {
++                return; // 以묐났 ???낅젰 臾댁떆
++            }
++        }
++        
++        _lastVkCode = vkCode;
++        _lastScanCode = scanCode;
++        _lastFlags = flags;
++        _lastKeyTime = now;
+         
+         // ?ㅻ낫???곹깭 媛?몄삤湲?(Ctrl, Alt ??議고빀???뺤씤??
+         var keyState = new byte[256];
+diff --git a/src/TextExpander.App/Services/KeyboardOutputService.cs b/src/TextExpander.App/Services/KeyboardOutputService.cs
+index 0340395..5e4b167 100644
+--- a/src/TextExpander.App/Services/KeyboardOutputService.cs
++++ b/src/TextExpander.App/Services/KeyboardOutputService.cs
+@@ -119,11 +119,15 @@ public class KeyboardOutputService : IDisposable
+                     CreateKeyInput(VK_BACK, true)
+                 };
+                 
+-                SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
++                uint result = SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>());
+                 
+                 // 媛????ъ씠 ?쒕젅??(硫붾え???명솚??
++                // ?쒕젅???꾩뿉 諛깆뒪?섏씠?ㅺ? 泥섎━?섎룄濡?異⑸텇???쒓컙 ?뺣낫
+                 Thread.Sleep(_settings.BackspaceDelayMs);
+             }
++            
++            // 紐⑤뱺 諛깆뒪?섏씠???꾩넚 ??異붽? ?쒕젅??(留덉?留?諛깆뒪?섏씠?ㅺ? 泥섎━?섎룄濡?
++            Thread.Sleep(_settings.BackspaceDelayMs);
+         }
+     }
+ 
+diff --git a/src/TextExpander.Core/Engine/ExpanderEngine.cs b/src/TextExpander.Core/Engine/ExpanderEngine.cs
+index cc50cce..93f7545 100644
+--- a/src/TextExpander.Core/Engine/ExpanderEngine.cs
++++ b/src/TextExpander.Core/Engine/ExpanderEngine.cs
+@@ -18,6 +18,15 @@ public class ExpanderEngine : IExpanderEngine
+     private bool _isSending = false;
+     private bool _isEnabled = true;
+     private DateTime _lastProcessTime = DateTime.MinValue;
++    private Action<string>? _logWriter;
++
++    /// <summary>
++    /// 濡쒓렇 ?묒꽦 ?⑥닔 ?ㅼ젙
++    /// </summary>
++    public void SetLogWriter(Action<string>? logWriter)
++    {
++        _logWriter = logWriter;
++    }
+ 
+     /// <inheritdoc/>
+     public event Action<ExpanderResult>? OnExpansionNeeded;
+@@ -116,6 +125,9 @@ public class ExpanderEngine : IExpanderEngine
+     {
+         // 1. 踰꾪띁?먯꽌 留덉?留??⑥뼱 異붿텧
+         string lastWord = ExtractLastWord();
++        
++        // ?붾쾭源?+        _logWriter?.Invoke($"[HandleDelimiter] at {DateTime.Now:HH:mm:ss.fff} - Delimiter: '{delimiter}', Buffer: '{_buffer}', LastWord: '{lastWord}', Enabled: {_isEnabled}");
+ 
+         // 2. 鍮??⑥뼱??臾댁떆?섍퀬 踰꾪띁 ?대━??         if (string.IsNullOrWhiteSpace(lastWord))
+@@ -137,6 +149,10 @@ public class ExpanderEngine : IExpanderEngine
+         // 5. 留ㅼ묶 ?깃났 ??移섑솚 ?대깽??諛쒖깮
+         if (matchedSnippet != null)
+         {
++            // ???듭떖: ?대깽??諛쒖깮 ?꾩뿉 ?붿쭊 鍮꾪솢?깊솕 (?숆린?곸쑝濡?利됱떆 李⑤떒)
++            _isEnabled = false;
++            _buffer.Clear();  // 踰꾪띁??利됱떆 ?대━??+            
+             var result = new ExpanderResult
+             {
+                 Keyword = lastWord,
+@@ -145,10 +161,12 @@ public class ExpanderEngine : IExpanderEngine
+                 KeywordLength = lastWord.Length
+             };
+ 
++            _logWriter?.Invoke($"[HandleDelimiter] Match found! Keyword: '{lastWord}', Length: {lastWord.Length}, Engine disabled at {DateTime.Now:HH:mm:ss.fff}");
+             OnExpansionNeeded?.Invoke(result);
++            return;  // ?대? 踰꾪띁 ?대━?댄뻽?쇰?濡?由ы꽩
+         }
+ 
+-        // 6. 留ㅼ묶 ?깃났/?ㅽ뙣 愿怨꾩뾾??踰꾪띁 ?대━??(?쇨????좎?)
++        // 6. 留ㅼ묶 ?ㅽ뙣 ?쒖뿉留??ш린??踰꾪띁 ?대━??         _buffer.Clear();
+     }
+ 
